@@ -35,4 +35,12 @@ CREATE TABLE IF NOT EXISTS public.balance (
   CONSTRAINT fk_user_id FOREIGN KEY (user_id)
   REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS public.sessions (
+  user_id integer,
+  token varchar,
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id)
+  REFERENCES users(id)
+);
+
 COMMIT;
