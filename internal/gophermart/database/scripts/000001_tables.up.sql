@@ -8,11 +8,11 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 CREATE TABLE IF NOT EXISTS public.orders (
-  id integer primary key,
+  id integer NOT NULL,
   user_id integer NOT NULL,
-  status varchar NOT NULL,
+  status varchar,
   uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  accural float NOT NULL,
+  accural float,
   CONSTRAINT fk_user_id FOREIGN KEY (user_id)
   REFERENCES users(id)
 
@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   user_id integer,
   token varchar,
   CONSTRAINT fk_user_id FOREIGN KEY (user_id)
-  REFERENCES users(id)
+  REFERENCES users(id),
+  CONSTRAINT token UNIQUE (token)
 );
 
 COMMIT;
