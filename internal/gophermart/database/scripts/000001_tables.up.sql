@@ -8,32 +8,27 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 CREATE TABLE IF NOT EXISTS public.orders (
-  id integer NOT NULL,
+  id varchar NOT NULL,
   user_id integer NOT NULL,
-  status varchar,
+  status varchar NOT NULL,
   uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL,
   accural float,
-  CONSTRAINT fk_user_id FOREIGN KEY (user_id)
-  REFERENCES users(id)
-
+  CONSTRAINT id UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.withdrawals (
   id integer primary key generated always as identity,
-  order_id integer,
+  order_id varchar NOT NULL,
   sum integer,
   processed_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  CONSTRAINT fk_order_id FOREIGN KEY (order_id)
-  REFERENCES orders(id)
+  CONSTRAINT order_id UNIQUE (order_id)
 );
 
 
 CREATE TABLE IF NOT EXISTS public.balance (
   user_id integer,
   current integer,
-  withdraw integer,
-  CONSTRAINT fk_user_id FOREIGN KEY (user_id)
-  REFERENCES users(id)
+  withdraw integer
 );
 
 CREATE TABLE IF NOT EXISTS public.sessions (

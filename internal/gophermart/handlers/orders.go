@@ -14,16 +14,20 @@ import (
 
 func UploadOrder(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	userID := getUserIdByLogin(r.Context(), token)
+	if token == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	userID, err := getUserId(r.Context(), token)
+	log.Printf("User ID: %v, Token: %v\n", userID, token)
 	w.Header().Set("Content-Type", "application/json")
-	if userID == 0 {
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 	var order model.Order
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
@@ -33,21 +37,22 @@ func UploadOrder(w http.ResponseWriter, r *http.Request) {
 	}(r.Body)
 	order.ID = string(body)
 	if !order.IsValid() {
-		http.Error(w, "Order format invalid", http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
 	}
-	resp := database.UploadOrder(r.Context(), order.ID, userID, "", time.Now())
-	w.WriteHeader(resp)
+	w.WriteHeader(database.UploadOrder(r.Context(), order.ID, userID, "NEW", time.Now()))
 }
 
 func GetOrders(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	userID := getUserIdByLogin(r.Context(), token)
+	userID, err := getUserId(r.Context(), token)
 	if userID == 0 {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 	var orders []model.Order
-	orders, err := database.GetOrders(r.Context(), userID)
+	orders, err = database.GetOrders(r.Context(), userID)
 	if err != nil {
+		log.Printf("Error getting orders: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -61,6 +66,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUserIdByLogin(ctx context.Context, login string) int {
-	return database.GetUserIdByToken(ctx, login)
+func getUserId(ctx context.Context, token string) (int, error) {
+	userID, err := database.GetUserIdByToken(ctx, token)
+	return userID, err
 }

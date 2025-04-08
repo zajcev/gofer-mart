@@ -28,7 +28,7 @@ func main() {
 func Router() chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(middleware.GzipMiddleware)
+	//r.Use(middleware.GzipMiddleware)
 	r.Use(middleware.ZapMiddleware)
 
 	r.Post("/api/user/register", handlers.RegisterUser)

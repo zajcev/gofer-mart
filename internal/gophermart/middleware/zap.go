@@ -9,7 +9,6 @@ import (
 type data struct {
 	http.ResponseWriter
 	statusCode int
-	contentLen int
 }
 
 func ZapMiddleware(wrappedHandler http.Handler) http.Handler {
@@ -30,13 +29,12 @@ func ZapMiddleware(wrappedHandler http.Handler) http.Handler {
 		logger.Info(
 			"Response data",
 			zap.Int("statusCode", rw.statusCode),
-			zap.Int("contentLen", rw.contentLen),
 		)
 	})
 }
 
 func newLoggingResponseWriter(w http.ResponseWriter) *data {
-	return &data{w, http.StatusOK, -1}
+	return &data{w, http.StatusOK}
 }
 
 func (d *data) WriteHeader(code int) {
@@ -45,6 +43,5 @@ func (d *data) WriteHeader(code int) {
 }
 
 func (d *data) Write(b []byte) (int, error) {
-	d.contentLen += len(b)
 	return d.ResponseWriter.Write(b)
 }

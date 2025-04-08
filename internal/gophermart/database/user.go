@@ -76,40 +76,11 @@ func GetPassword(ctx context.Context, login string) string {
 	return cast.ToString(value)
 }
 
-//func GetTokenByLogin(ctx context.Context, login string) string {
-//	id := getUserId(ctx, login)
-//	if id == 0 {
-//		return ""
-//	}
-//	row, err := db.Query(ctx, getToken, id)
-//	if err != nil {
-//		log.Printf("Error while executing query: %v", err)
-//		return ""
-//	}
-//	defer row.Close()
-//
-//	if !row.Next() {
-//		log.Printf("No tokens returned for login: %v", login)
-//		return ""
-//	}
-//
-//	if err = row.Err(); err != nil {
-//		log.Printf("Error after row.Next(): %v", err)
-//		return ""
-//	}
-//
-//	var value interface{}
-//	err = row.Scan(&value)
-//	if err != nil {
-//		log.Printf("Error while scan token value: %v", err)
-//		return ""
-//	}
-//
-//	return cast.ToString(value)
-//}
-
-func NewSession(ctx context.Context, login string, token string) {
-	id := getUserId(ctx, login)
+func NewSession(ctx context.Context, login string, token string) error {
+	id, err := getUserId(ctx, login)
+	if err != nil {
+		return err
+	}
 	if id != 0 {
 		_, err := db.Exec(ctx, addSession, id, token)
 		if err != nil {
@@ -121,44 +92,45 @@ func NewSession(ctx context.Context, login string, token string) {
 			}
 		}
 	}
+	return nil
 }
 
-func getUserId(ctx context.Context, login string) int {
+func getUserId(ctx context.Context, login string) (int, error) {
 	var id interface{}
 	rowId, _ := db.Query(ctx, getUserIdByLogin, login)
 	if rowId.Err() != nil {
 		log.Printf("Error while execute query: %v", rowId.Err())
-		return 0
+		return 0, rowId.Err()
 	}
 	defer rowId.Close()
 	if !rowId.Next() {
 		log.Printf("No tokens returned for login: %v", login)
-		return 0
+		return 0, errors.New("No tokens returned for login: " + login)
 	}
 	err := rowId.Scan(&id)
 	if err != nil {
 		log.Printf("Error while scan token value: %v", rowId.Err())
-		return 0
+		return 0, err
 	}
-	return cast.ToInt(id)
+	return cast.ToInt(id), nil
 }
 
-func GetUserIdByToken(ctx context.Context, token string) int {
+func GetUserIdByToken(ctx context.Context, token string) (int, error) {
 	var id interface{}
 	rowId, _ := db.Query(ctx, getUserIdByToken, token)
 	if rowId.Err() != nil {
 		log.Printf("Error while execute query: %v", rowId.Err())
-		return 0
+		return 0, rowId.Err()
 	}
 	defer rowId.Close()
 	if !rowId.Next() {
-		log.Println("No session found for token")
-		return 0
+		log.Println("No session found for token " + token)
+		return 0, errors.New("No session found for token: " + token)
 	}
 	err := rowId.Scan(&id)
 	if err != nil {
 		log.Printf("Error while scan id value: %v", rowId.Err())
-		return 0
+		return 0, err
 	}
-	return cast.ToInt(id)
+	return cast.ToInt(id), nil
 }
