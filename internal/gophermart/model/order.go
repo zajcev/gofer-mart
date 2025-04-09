@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/spf13/cast"
+	"strconv"
 	"time"
 )
 
@@ -14,29 +14,22 @@ type Order struct {
 }
 
 func (o *Order) IsValid() bool {
-	var sum int64
-	length := 0
-	n := cast.ToInt64(o.ID)
-	for temp := n; temp > 0; temp /= 10 {
-		length++
-	}
+	sum := 0
+	nDigits := len(o.ID)
+	parity := nDigits % 2
 
-	parity := length % 2
-	pos := 0
-
-	for n > 0 {
-		digit := n % 10
-		n /= 10
-
-		if pos%2 == parity {
+	for i := 0; i < nDigits; i++ {
+		digit, err := strconv.Atoi(string(o.ID[i]))
+		if err != nil {
+			return false
+		}
+		if i%2 == parity {
 			digit *= 2
 			if digit > 9 {
-				digit = digit%10 + digit/10
+				digit -= 9
 			}
 		}
-
 		sum += digit
-		pos++
 	}
 
 	return sum%10 == 0
