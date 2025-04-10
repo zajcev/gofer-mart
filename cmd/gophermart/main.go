@@ -6,7 +6,6 @@ import (
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/handlers"
-	"github.com/zajcev/gofer-mart/internal/gophermart/middleware"
 	"log"
 	"net/http"
 )
@@ -29,7 +28,7 @@ func Router() chi.Router {
 	r := chi.NewRouter()
 
 	//r.Use(middleware.GzipMiddleware)
-	r.Use(middleware.ZapMiddleware)
+	//r.Use(middleware.ZapMiddleware)
 
 	r.Post("/api/user/register", handlers.RegisterUser)
 	r.Post("/api/user/login", handlers.LoginUser)
@@ -39,6 +38,6 @@ func Router() chi.Router {
 
 	r.Get("/api/user/balance", handlers.GetBalance)
 	r.Get("/api/user/withdrawals", handlers.GetWithdrawals)
-	r.Post("/api/user/balance/withdraw", handlers.Withdrawal)
+	r.Post("/api/user/balance/withdraw", handlers.SetWithdrawals)
 	return r
 }

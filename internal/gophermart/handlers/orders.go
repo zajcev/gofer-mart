@@ -19,7 +19,6 @@ func UploadOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, err := getUserId(r.Context(), token)
-	log.Printf("User ID: %v, Token: %v\n", userID, token)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)

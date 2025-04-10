@@ -16,5 +16,7 @@ const (
 )
 
 const (
-	balance = "orders"
+	getBalance     = "select * from balance where user_id = $1"
+	getWithdrawals = "select order_id,sum,processed_at from withdrawals where user_id = $1"
+	setWithdrawals = "insert into withdrawals (order_id,user_id,sum,processed_at) values ($1, $2, $3, $4)"
 )

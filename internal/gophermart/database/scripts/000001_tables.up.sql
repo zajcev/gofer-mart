@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 
 CREATE TABLE IF NOT EXISTS public.withdrawals (
   id integer primary key generated always as identity,
+  user_id integer NOT NULL,
   order_id varchar NOT NULL,
   sum integer,
   processed_at TIMESTAMP WITH TIME ZONE NOT NULL,
