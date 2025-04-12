@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"io"
@@ -68,4 +69,68 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 func getUserId(ctx context.Context, token string) (int, error) {
 	userID, err := database.GetUserIdByToken(ctx, token)
 	return userID, err
+}
+
+func accuralSystemRequest(o model.Order) {
+
+	o, err := sendToAccuralSystem(o)
+	if err != nil {
+		log.Printf("Error sending to AccuralSystem: %v", err)
+		return
+	}
+	if updateOrderStatus(context.Background(), o) {
+		log.Printf("Order with id %v accured", o.ID)
+		return
+	}
+}
+
+func sendToAccuralSystem(o model.Order) (model.Order, error) {
+	client := &http.Client{}
+	request, err := http.NewRequest("GET", config.GetAccSystemAddr()+"/orders/"+o.ID, nil)
+	response, err := retry(client, request, 3)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Printf("Error reading body accuralSystemRequest: %v", err)
+	}
+	defer request.Body.Close()
+	err = json.Unmarshal(body, &o)
+	if err != nil {
+		log.Printf("Error unmarshalling body accuralSystemRequest: %v", err)
+		return model.Order{}, err
+	}
+	return o, nil
+}
+
+func updateOrderStatus(ctx context.Context, o model.Order) bool {
+	if o.Status == "INVALID" {
+		log.Printf("Order %s is invalid", o.ID)
+		database.UpdateOrderStatus(ctx, o)
+		return true
+	}
+	if o.Status == "REGISTERED" || o.Status == "PROCESSING" {
+		log.Printf("Order %v in status %v", o.ID, o.Status)
+		database.UpdateOrderStatus(ctx, o)
+		return false
+	}
+	if o.Status == "PROCESSED" {
+		database.UpdateOrderStatus(ctx, o)
+		return true
+	}
+	return false
+}
+
+func retry(client *http.Client, req *http.Request, count int) (*http.Response, error) {
+	delay := 1
+	var res error
+	for i := 0; i < count; i++ {
+		resp, err := client.Do(req)
+		res = err
+		if err == nil {
+			return resp, nil
+		}
+		time.Sleep(time.Duration(delay) * time.Second)
+		log.Printf("Retry after %v seconds", delay)
+		delay += 2
+	}
+	return nil, res
 }

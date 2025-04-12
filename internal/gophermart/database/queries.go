@@ -10,9 +10,10 @@ const (
 )
 
 const (
-	addOrder  = "insert into orders (id, user_id, status, uploaded_at, accural) values ($1, $2, $3, $4, $5)"
-	getOrder  = "select id,user_id from orders where id = $1"
-	getOrders = "select id,status,uploaded_at, accural from orders where user_id = $1"
+	addOrder          = "insert into orders (id, user_id, status, uploaded_at, accural) values ($1, $2, $3, $4, $5)"
+	getOrder          = "select id,user_id from orders where id = $1"
+	getOrders         = "select id,status,uploaded_at, accural from orders where user_id = $1"
+	updateOrderStatus = "update orders set status = $1 where id = $2"
 )
 
 const (

@@ -38,6 +38,15 @@ func GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	return list, nil
 }
 
+func UpdateOrderStatus(ctx context.Context, o model.Order) int {
+	_, err := db.Exec(ctx, updateOrderStatus, o.Status, o.ID)
+	if err != nil {
+		log.Printf("Error after updateOrderStatus: %v", err)
+		return http.StatusInternalServerError
+	}
+	return http.StatusOK
+}
+
 func checkDuplicate(ctx context.Context, orderID string, userID int) int {
 	row, err := db.Query(ctx, getOrder, orderID)
 	if row.Err() != nil {
