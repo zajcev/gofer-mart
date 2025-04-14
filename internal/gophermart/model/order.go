@@ -10,7 +10,7 @@ type Order struct {
 	UserID     int
 	Status     string    `json:"status,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at,omitempty"`
-	Accrual    int       `json:"accrual,omitempty"`
+	Accrual    float32   `json:"accrual,omitempty"`
 }
 
 func (o *Order) IsValid() bool {

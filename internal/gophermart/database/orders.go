@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"github.com/zajcev/gofer-mart/internal/gophermart/database/scripts"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"log"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 func UploadOrder(ctx context.Context, id string, userID int, status string, uploadedAt time.Time) int {
 	check := checkDuplicate(ctx, id, userID)
 	if check == http.StatusAccepted {
-		_, err := db.Exec(ctx, addOrder, id, userID, status, uploadedAt, 0)
+		_, err := db.Exec(ctx, scripts.AddOrder, id, userID, status, uploadedAt, 0)
 		if err != nil {
 			log.Printf("Error after addOrder: %v", err)
 			return http.StatusInternalServerError
@@ -23,7 +24,7 @@ func UploadOrder(ctx context.Context, id string, userID int, status string, uplo
 func GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	list := []model.Order{}
 	row := model.Order{}
-	rows, _ := db.Query(ctx, getOrders, userID)
+	rows, _ := db.Query(ctx, scripts.GetOrders, userID)
 	if rows.Err() != nil {
 		log.Printf("Error while execute query: %v", rows.Err())
 		return nil, rows.Err()
@@ -38,8 +39,26 @@ func GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	return list, nil
 }
 
-func UpdateOrderStatus(ctx context.Context, o model.Order) int {
-	_, err := db.Exec(ctx, updateOrderStatus, o.Status, o.ID)
+func GetActiveOrders(ctx context.Context) ([]model.Order, error) {
+	list := []model.Order{}
+	row := model.Order{}
+	rows, _ := db.Query(ctx, scripts.GetActiveOrders)
+	if rows.Err() != nil {
+		log.Printf("Error while execute query: %v", rows.Err())
+		return nil, rows.Err()
+	}
+	for i := 0; rows.Next(); i++ {
+		err := rows.Scan(&row.ID, &row.UserID, &row.Status, &row.Accrual)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, nil
+}
+
+func UpdateOrderStatus(ctx context.Context, o *model.Order) int {
+	_, err := db.Exec(ctx, scripts.UpdateOrderStatus, o.Status, o.ID)
 	if err != nil {
 		log.Printf("Error after updateOrderStatus: %v", err)
 		return http.StatusInternalServerError
@@ -47,8 +66,17 @@ func UpdateOrderStatus(ctx context.Context, o model.Order) int {
 	return http.StatusOK
 }
 
+func UpdateOrderAccural(ctx context.Context, o *model.Order) int {
+	_, err := db.Exec(ctx, scripts.UpdateOrderAccural, o.ID, o.Accrual)
+	if err != nil {
+		log.Printf("Error after updateOrderAccural: %v", err)
+		return http.StatusInternalServerError
+	}
+	return http.StatusOK
+}
+
 func checkDuplicate(ctx context.Context, orderID string, userID int) int {
-	row, err := db.Query(ctx, getOrder, orderID)
+	row, err := db.Query(ctx, scripts.GetOrder, orderID)
 	if row.Err() != nil {
 		log.Printf("Error while execute query: %v", row.Err())
 		return http.StatusInternalServerError

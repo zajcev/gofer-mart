@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/jasonlvhit/gocron"
+	"github.com/zajcev/gofer-mart/internal/gophermart/accural"
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/handlers"
@@ -20,6 +22,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
+	gocron.Every(3).Second().Do(accural.AccuralIntegration)
+	go func() {
+		<-gocron.Start()
+	}()
 
 	log.Fatal(http.ListenAndServe(config.GetAddress(), Router()))
 }

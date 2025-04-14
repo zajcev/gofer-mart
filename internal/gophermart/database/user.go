@@ -5,11 +5,12 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spf13/cast"
+	"github.com/zajcev/gofer-mart/internal/gophermart/database/scripts"
 	"log"
 )
 
 func AddUser(ctx context.Context, login string, pass string) {
-	_, err := db.Exec(ctx, addUser, login, pass)
+	_, err := db.Exec(ctx, scripts.AddUser, login, pass)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -21,7 +22,7 @@ func AddUser(ctx context.Context, login string, pass string) {
 }
 
 func GetLogin(ctx context.Context, login string) string {
-	row, err := db.Query(ctx, getLogin, login)
+	row, err := db.Query(ctx, scripts.GetLogin, login)
 	if err != nil {
 		log.Printf("Error while executing query: %v", err)
 		return ""
@@ -49,7 +50,7 @@ func GetLogin(ctx context.Context, login string) string {
 }
 
 func GetPassword(ctx context.Context, login string) string {
-	row, err := db.Query(ctx, getPassword, login)
+	row, err := db.Query(ctx, scripts.GetPassword, login)
 	if err != nil {
 		log.Printf("Error while executing query: %v", err)
 		return ""
@@ -82,7 +83,7 @@ func NewSession(ctx context.Context, login string, token string) error {
 		return err
 	}
 	if id != 0 {
-		_, err := db.Exec(ctx, addSession, id, token)
+		_, err := db.Exec(ctx, scripts.AddSession, id, token)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {
@@ -97,7 +98,7 @@ func NewSession(ctx context.Context, login string, token string) error {
 
 func getUserId(ctx context.Context, login string) (int, error) {
 	var id interface{}
-	rowId, _ := db.Query(ctx, getUserIdByLogin, login)
+	rowId, _ := db.Query(ctx, scripts.GetUserIdByLogin, login)
 	if rowId.Err() != nil {
 		log.Printf("Error while execute query: %v", rowId.Err())
 		return 0, rowId.Err()
@@ -117,7 +118,7 @@ func getUserId(ctx context.Context, login string) (int, error) {
 
 func GetUserIdByToken(ctx context.Context, token string) (int, error) {
 	var id interface{}
-	rowId, _ := db.Query(ctx, getUserIdByToken, token)
+	rowId, _ := db.Query(ctx, scripts.GetUserIdByToken, token)
 	if rowId.Err() != nil {
 		log.Printf("Error while execute query: %v", rowId.Err())
 		return 0, rowId.Err()

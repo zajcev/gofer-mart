@@ -18,7 +18,7 @@ type Flags struct {
 func NewConfig() error {
 	flag.StringVar(&flags.Address, "a", "localhost:8080", "address and port to run")
 	flag.StringVar(&flags.DatabaseURI, "d", "postgres://user:password@localhost:5432/gophermart?sslmode=disable", "database uri")
-	flag.StringVar(&flags.AccSystemAddr, "r", "localhost:8090", "path to accrual system")
+	flag.StringVar(&flags.AccSystemAddr, "r", "http://localhost:8090", "path to accrual system")
 	flag.Parse()
 	if err := env.Parse(&flags); err != nil {
 		log.Printf("%+v", err)

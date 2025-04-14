@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
@@ -36,6 +37,7 @@ func GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
 func SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
@@ -57,4 +59,12 @@ func SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	resp := database.SetWithdraw(r.Context(), withdraw)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp)
+	updateUserBalance(withdraw)
+}
+
+func updateUserBalance(w model.Withdraw) {
+	err := database.SetBalanceWithdraw(context.Background(), &w)
+	if err != nil {
+		log.Printf("Error after updateUserBalance: %v", err)
+	}
 }

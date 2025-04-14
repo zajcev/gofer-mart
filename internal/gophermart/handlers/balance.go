@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
+	"log"
 	"net/http"
 )
 
@@ -19,11 +20,13 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 	}
 	balance, err := database.GetUserBalance(r.Context(), userID)
 	if err != nil {
+		log.Printf("Error getting balance: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	resp, err := json.Marshal(balance)
+	log.Println(balance)
+	resp, err := json.Marshal(&balance)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
