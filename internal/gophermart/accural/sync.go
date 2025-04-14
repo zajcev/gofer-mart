@@ -16,13 +16,11 @@ import (
 func AccuralIntegration() {
 	list, err := database.GetActiveOrders(context.Background())
 	if err != nil {
-		log.Printf("Error while GetActiveOrders: %v", err)
 		return
 	}
 	for _, v := range list {
 		order, err := sendToAccuralSystem(&v)
 		if err != nil {
-			log.Printf("Error while sendToAccuralSystem: %v", err)
 			continue
 		}
 		if order.Status != "" {
@@ -73,11 +71,9 @@ func sendToAccuralSystem(o *model.Order) (*model.Order, error) {
 
 func updateOrderStatus(ctx context.Context, o *model.Order) {
 	if o.Status == "INVALID" {
-		log.Printf("Order %s is invalid", o.ID)
 		database.UpdateOrderStatus(ctx, o)
 	}
 	if o.Status == "REGISTERED" || o.Status == "PROCESSING" {
-		log.Printf("Order %v in status %v", o.ID, o.Status)
 		database.UpdateOrderStatus(ctx, o)
 	}
 	if o.Status == "PROCESSED" {

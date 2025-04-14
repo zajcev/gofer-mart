@@ -6,7 +6,6 @@ import (
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -30,7 +29,7 @@ func UploadOrder(w http.ResponseWriter, r *http.Request) {
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
 		if err != nil {
-			log.Printf("Error closing body: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}(r.Body)
 	order.ID = string(body)
@@ -55,7 +54,6 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	var orders []model.Order
 	orders, err = database.GetOrders(r.Context(), userID)
 	if err != nil {
-		log.Printf("Error getting orders: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -21,7 +21,6 @@ var db *pgxpool.Pool
 func Init(ctx context.Context, DBUrl string) error {
 	d, err := pgxpool.New(ctx, DBUrl)
 	if err != nil {
-		log.Printf("Error while connect to database: %v", err)
 		return err
 	}
 	db = d

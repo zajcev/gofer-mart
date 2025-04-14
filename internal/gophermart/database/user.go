@@ -24,25 +24,21 @@ func AddUser(ctx context.Context, login string, pass string) {
 func GetLogin(ctx context.Context, login string) string {
 	row, err := db.Query(ctx, scripts.GetLogin, login)
 	if err != nil {
-		log.Printf("Error while executing query: %v", err)
 		return ""
 	}
 	defer row.Close()
 
 	if !row.Next() {
-		log.Printf("No rows returned for login: %v", login)
 		return ""
 	}
 
 	if err = row.Err(); err != nil {
-		log.Printf("Error after row.Next(): %v", err)
 		return ""
 	}
 
 	var value interface{}
 	err = row.Scan(&value)
 	if err != nil {
-		log.Printf("Error while scan login value: %v", err)
 		return ""
 	}
 
@@ -52,25 +48,21 @@ func GetLogin(ctx context.Context, login string) string {
 func GetPassword(ctx context.Context, login string) string {
 	row, err := db.Query(ctx, scripts.GetPassword, login)
 	if err != nil {
-		log.Printf("Error while executing query: %v", err)
 		return ""
 	}
 	defer row.Close()
 
 	if !row.Next() {
-		log.Printf("No passwords returned for login: %v", login)
 		return ""
 	}
 
 	if err = row.Err(); err != nil {
-		log.Printf("Error after row.Next(): %v", err)
 		return ""
 	}
 
 	var value interface{}
 	err = row.Scan(&value)
 	if err != nil {
-		log.Printf("Error while scan password value: %v", err)
 		return ""
 	}
 
@@ -100,17 +92,14 @@ func getUserID(ctx context.Context, login string) (int, error) {
 	var id interface{}
 	rowID, _ := db.Query(ctx, scripts.GetUserIDByLogin, login)
 	if rowID.Err() != nil {
-		log.Printf("Error while execute query: %v", rowID.Err())
 		return 0, rowID.Err()
 	}
 	defer rowID.Close()
 	if !rowID.Next() {
-		log.Printf("No tokens returned for login: %v", login)
 		return 0, errors.New("No tokens returned for login: " + login)
 	}
 	err := rowID.Scan(&id)
 	if err != nil {
-		log.Printf("Error while scan token value: %v", rowID.Err())
 		return 0, err
 	}
 	return cast.ToInt(id), nil
@@ -120,17 +109,14 @@ func GetUserIDByToken(ctx context.Context, token string) (int, error) {
 	var id interface{}
 	rowID, _ := db.Query(ctx, scripts.GetUserIDByToken, token)
 	if rowID.Err() != nil {
-		log.Printf("Error while execute query: %v", rowID.Err())
 		return 0, rowID.Err()
 	}
 	defer rowID.Close()
 	if !rowID.Next() {
-		log.Println("No session found for token " + token)
 		return 0, errors.New("No session found for token: " + token)
 	}
 	err := rowID.Scan(&id)
 	if err != nil {
-		log.Printf("Error while scan id value: %v", rowID.Err())
 		return 0, err
 	}
 	return cast.ToInt(id), nil

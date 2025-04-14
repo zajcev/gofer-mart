@@ -72,7 +72,7 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(statusCode int) {
 	if !rw.wroteHeader {
 		contentType := rw.Header().Get("Content-Type")
-		if contentType == "application/json" || strings.Contains(contentType, "text/html") {
+		if strings.Contains(contentType, "application/json") {
 			rw.Header().Set("Content-Encoding", "gzip")
 		}
 		rw.wroteHeader = true

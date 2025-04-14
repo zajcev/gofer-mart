@@ -55,7 +55,6 @@ func SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	withdraw := model.Withdraw{}
 	err = json.NewDecoder(r.Body).Decode(&withdraw)
 	if err != nil {
-		log.Printf("Error while decode object in method SetWithdrawals: %v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

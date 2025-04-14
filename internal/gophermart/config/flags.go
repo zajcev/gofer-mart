@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/caarlos0/env/v11"
 	"github.com/spf13/cast"
-	"log"
 )
 
 var flags Flags
@@ -21,7 +20,6 @@ func NewConfig() error {
 	flag.StringVar(&flags.AccSystemAddr, "r", "http://localhost:8090", "path to accrual system")
 	flag.Parse()
 	if err := env.Parse(&flags); err != nil {
-		log.Printf("%+v", err)
 		return err
 	}
 	return nil

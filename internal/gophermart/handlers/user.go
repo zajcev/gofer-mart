@@ -8,7 +8,6 @@ import (
 	"errors"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
-	"log"
 	"net/http"
 	"time"
 )
@@ -67,7 +66,6 @@ func addUser(ctx context.Context, u model.User) (int, string, error) {
 	}
 	hash, err := hashPassword(u.Password)
 	if err != nil {
-		log.Printf("error hashing password: %v", err)
 		return http.StatusInternalServerError, "", err
 	}
 	database.AddUser(ctx, u.Login, hash)
