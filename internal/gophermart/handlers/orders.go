@@ -46,7 +46,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	userID, err := getUserID(r.Context(), token)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	if userID == 0 {
