@@ -79,18 +79,12 @@ func addUser(ctx context.Context, u model.User) (int, string, error) {
 func verifyPassword(ctx context.Context, u model.User) bool {
 	dbPass := database.GetPassword(ctx, u.Login)
 	hash, _ := hashPassword(u.Password)
-	if dbPass == hash {
-		return true
-	}
-	return false
+	return dbPass == hash
 }
 
 func verifyLogin(ctx context.Context, u model.User) bool {
 	login := database.GetLogin(ctx, u.Login)
-	if login == "" {
-		return false
-	}
-	return true
+	return login != ""
 }
 
 func generateAuthToken() string {

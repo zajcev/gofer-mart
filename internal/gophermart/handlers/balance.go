@@ -13,7 +13,7 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserId(r.Context(), token)
+	userID, err := getUserID(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

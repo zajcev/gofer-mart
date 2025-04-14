@@ -6,7 +6,6 @@ import (
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -18,13 +17,13 @@ func UploadOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserId(r.Context(), token)
+	userID, err := getUserID(r.Context(), token)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 	var order model.Order
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -45,7 +44,11 @@ func UploadOrder(w http.ResponseWriter, r *http.Request) {
 
 func GetOrders(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	userID, err := getUserId(r.Context(), token)
+	userID, err := getUserID(r.Context(), token)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	if userID == 0 {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
@@ -66,7 +69,7 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUserId(ctx context.Context, token string) (int, error) {
-	userID, err := database.GetUserIdByToken(ctx, token)
+func getUserID(ctx context.Context, token string) (int, error) {
+	userID, err := database.GetUserIDByToken(ctx, token)
 	return userID, err
 }

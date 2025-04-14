@@ -5,8 +5,8 @@ const (
 	AddSession       = "insert into sessions (user_id, token) values ($1, $2) ON CONFLICT(token) DO UPDATE SET token=EXCLUDED.token"
 	GetLogin         = "select login from users where login = $1"
 	GetPassword      = "select password from users where login = $1"
-	GetUserIdByToken = "select user_id from sessions where token = $1"
-	GetUserIdByLogin = "select id from users where login = $1"
+	GetUserIDByToken = "select user_id from sessions where token = $1"
+	GetUserIDByLogin = "select id from users where login = $1"
 )
 
 const (

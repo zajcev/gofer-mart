@@ -15,7 +15,7 @@ func GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserId(r.Context(), token)
+	userID, err := getUserID(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -44,7 +44,11 @@ func SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserId(r.Context(), token)
+	userID, err := getUserID(r.Context(), token)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	if userID == 0 {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}

@@ -77,7 +77,7 @@ func UpdateOrderAccural(ctx context.Context, o *model.Order) int {
 
 func checkDuplicate(ctx context.Context, orderID string, userID int) int {
 	row, err := db.Query(ctx, scripts.GetOrder, orderID)
-	if row.Err() != nil {
+	if err != nil {
 		log.Printf("Error while execute query: %v", row.Err())
 		return http.StatusInternalServerError
 	}

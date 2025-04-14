@@ -78,7 +78,7 @@ func GetPassword(ctx context.Context, login string) string {
 }
 
 func NewSession(ctx context.Context, login string, token string) error {
-	id, err := getUserId(ctx, login)
+	id, err := getUserID(ctx, login)
 	if err != nil {
 		return err
 	}
@@ -96,41 +96,41 @@ func NewSession(ctx context.Context, login string, token string) error {
 	return nil
 }
 
-func getUserId(ctx context.Context, login string) (int, error) {
+func getUserID(ctx context.Context, login string) (int, error) {
 	var id interface{}
-	rowId, _ := db.Query(ctx, scripts.GetUserIdByLogin, login)
-	if rowId.Err() != nil {
-		log.Printf("Error while execute query: %v", rowId.Err())
-		return 0, rowId.Err()
+	rowID, _ := db.Query(ctx, scripts.GetUserIDByLogin, login)
+	if rowID.Err() != nil {
+		log.Printf("Error while execute query: %v", rowID.Err())
+		return 0, rowID.Err()
 	}
-	defer rowId.Close()
-	if !rowId.Next() {
+	defer rowID.Close()
+	if !rowID.Next() {
 		log.Printf("No tokens returned for login: %v", login)
 		return 0, errors.New("No tokens returned for login: " + login)
 	}
-	err := rowId.Scan(&id)
+	err := rowID.Scan(&id)
 	if err != nil {
-		log.Printf("Error while scan token value: %v", rowId.Err())
+		log.Printf("Error while scan token value: %v", rowID.Err())
 		return 0, err
 	}
 	return cast.ToInt(id), nil
 }
 
-func GetUserIdByToken(ctx context.Context, token string) (int, error) {
+func GetUserIDByToken(ctx context.Context, token string) (int, error) {
 	var id interface{}
-	rowId, _ := db.Query(ctx, scripts.GetUserIdByToken, token)
-	if rowId.Err() != nil {
-		log.Printf("Error while execute query: %v", rowId.Err())
-		return 0, rowId.Err()
+	rowID, _ := db.Query(ctx, scripts.GetUserIDByToken, token)
+	if rowID.Err() != nil {
+		log.Printf("Error while execute query: %v", rowID.Err())
+		return 0, rowID.Err()
 	}
-	defer rowId.Close()
-	if !rowId.Next() {
+	defer rowID.Close()
+	if !rowID.Next() {
 		log.Println("No session found for token " + token)
 		return 0, errors.New("No session found for token: " + token)
 	}
-	err := rowId.Scan(&id)
+	err := rowID.Scan(&id)
 	if err != nil {
-		log.Printf("Error while scan id value: %v", rowId.Err())
+		log.Printf("Error while scan id value: %v", rowID.Err())
 		return 0, err
 	}
 	return cast.ToInt(id), nil

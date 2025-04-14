@@ -9,20 +9,20 @@ import (
 )
 
 func GetUserBalance(ctx context.Context, userID int) (model.Balance, error) {
-	rowId, _ := db.Query(ctx, scripts.GetBalance, userID)
+	rowID, _ := db.Query(ctx, scripts.GetBalance, userID)
 	balance := model.Balance{}
-	if rowId.Err() != nil {
-		log.Printf("Error while execute query: %v", rowId.Err())
-		return balance, rowId.Err()
+	if rowID.Err() != nil {
+		log.Printf("Error while execute query: %v", rowID.Err())
+		return balance, rowID.Err()
 	}
-	defer rowId.Close()
-	if !rowId.Next() {
+	defer rowID.Close()
+	if !rowID.Next() {
 		log.Printf("Not found row balance for user_id: %v", userID)
 		return balance, errors.New("not found row balance for user_id")
 	}
-	err := rowId.Scan(&balance.Current, &balance.Withdrawn)
+	err := rowID.Scan(&balance.Current, &balance.Withdrawn)
 	if err != nil {
-		log.Printf("Error while scan balance object: %v", rowId.Err())
+		log.Printf("Error while scan balance object: %v", rowID.Err())
 		return balance, err
 	}
 	return balance, nil
