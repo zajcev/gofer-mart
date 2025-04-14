@@ -70,15 +70,7 @@ func sendToAccuralSystem(o *model.Order) (*model.Order, error) {
 }
 
 func updateOrderStatus(ctx context.Context, o *model.Order) {
-	if o.Status == "INVALID" {
-		database.UpdateOrderStatus(ctx, o)
-	}
-	if o.Status == "REGISTERED" || o.Status == "PROCESSING" {
-		database.UpdateOrderStatus(ctx, o)
-	}
-	if o.Status == "PROCESSED" {
-		database.UpdateOrderStatus(ctx, o)
-	}
+	database.UpdateOrderStatus(ctx, o)
 }
 
 func updateOrderAccural(ctx context.Context, o *model.Order) {
