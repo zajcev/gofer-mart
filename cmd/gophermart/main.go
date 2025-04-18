@@ -3,48 +3,51 @@ package main
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
-	"github.com/jasonlvhit/gocron"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zajcev/gofer-mart/internal/gophermart/accural"
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/handlers"
-	"github.com/zajcev/gofer-mart/internal/gophermart/middleware"
 	"log"
 	"net/http"
 )
 
 func main() {
-	err := config.NewConfig()
+	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	err = database.Init(context.Background(), config.GetDatabaseURI())
+	database.Migration(cfg.DatabaseURI)
+	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURI)
 	if err != nil {
-		log.Fatalf("Error initializing database: %v", err)
+		log.Fatal(err)
 	}
-	gocron.Every(3).Second().Do(accural.AccuralIntegration)
-	go func() {
-		<-gocron.Start()
-	}()
+	defer pool.Close()
+	db := database.NewDBService(pool)
 
-	log.Fatal(http.ListenAndServe(config.GetAddress(), Router()))
+	accSystem := accural.NewAccrual(db)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go accSystem.AccrualIntegration(ctx, cfg.AccSystemAddr)
+	log.Fatal(http.ListenAndServe(cfg.Address, Router(db)))
 }
 
-func Router() chi.Router {
+func Router(db *database.DBService) chi.Router {
+	handler := handlers.NewHandler(db)
+
 	r := chi.NewRouter()
+	//r.Use(middleware.GzipMiddleware)
+	//r.Use(middleware.ZapMiddleware)
 
-	r.Use(middleware.GzipMiddleware)
-	r.Use(middleware.ZapMiddleware)
+	r.Post("/api/user/register", handler.RegisterUser)
+	r.Post("/api/user/login", handler.LoginUser)
 
-	r.Post("/api/user/register", handlers.RegisterUser)
-	r.Post("/api/user/login", handlers.LoginUser)
+	r.Get("/api/user/orders", handler.GetOrders)
+	r.Post("/api/user/orders", handler.UploadOrder)
 
-	r.Get("/api/user/orders", handlers.GetOrders)
-	r.Post("/api/user/orders", handlers.UploadOrder)
-
-	r.Get("/api/user/balance", handlers.GetBalance)
-	r.Get("/api/user/withdrawals", handlers.GetWithdrawals)
-	r.Post("/api/user/balance/withdraw", handlers.SetWithdrawals)
+	r.Get("/api/user/balance", handler.GetBalance)
+	r.Get("/api/user/withdrawals", handler.GetWithdrawals)
+	r.Post("/api/user/balance/withdraw", handler.SetWithdrawals)
 	return r
 }

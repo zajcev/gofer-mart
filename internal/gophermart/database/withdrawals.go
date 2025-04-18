@@ -8,18 +8,18 @@ import (
 	"time"
 )
 
-func SetWithdraw(ctx context.Context, withdraw model.Withdraw) int {
-	_, err := db.Exec(ctx, scripts.SetWithdrawals, withdraw.Order, withdraw.UserID, withdraw.Sum, time.Now())
+func (s *DBService) SetWithdraw(ctx context.Context, withdraw model.Withdraw) int {
+	_, err := s.db.Exec(ctx, scripts.SetWithdrawals, withdraw.Order, withdraw.UserID, withdraw.Sum, time.Now())
 	if err != nil {
 		return http.StatusInternalServerError
 	}
 	return http.StatusOK
 }
 
-func GetWithdraw(ctx context.Context, userID int) ([]model.Withdraw, error) {
+func (s *DBService) GetWithdraw(ctx context.Context, userID int) ([]model.Withdraw, error) {
 	list := []model.Withdraw{}
 	row := model.Withdraw{}
-	rows, _ := db.Query(ctx, scripts.GetWithdrawals, userID)
+	rows, _ := s.db.Query(ctx, scripts.GetWithdrawals, userID)
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}

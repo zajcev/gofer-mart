@@ -7,7 +7,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,19 +17,21 @@ import (
 //go:embed scripts/000001_tables.up.sql
 var file string
 
-var db *pgxpool.Pool
-
-func Init(ctx context.Context, DBUrl string) error {
-	d, err := pgxpool.New(ctx, DBUrl)
-	if err != nil {
-		return err
-	}
-	db = d
-	migration(DBUrl)
-	return nil
+type DB interface {
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
 }
 
-func migration(DBUrl string) {
+type DBService struct {
+	db DB
+}
+
+func NewDBService(db DB) *DBService {
+	return &DBService{db: db}
+}
+
+func Migration(DBUrl string) {
 	wd, _ := os.Getwd()
 	filePath := filepath.Join(wd, "internal/gophermart/database/scripts/")
 	d, _ := sql.Open("postgres", DBUrl)

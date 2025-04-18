@@ -9,8 +9,8 @@ import (
 	"log"
 )
 
-func AddUser(ctx context.Context, login string, pass string) {
-	_, err := db.Exec(ctx, scripts.AddUser, login, pass)
+func (s *DBService) AddUser(ctx context.Context, login string, pass string) {
+	_, err := s.db.Exec(ctx, scripts.AddUser, login, pass)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -21,8 +21,8 @@ func AddUser(ctx context.Context, login string, pass string) {
 	}
 }
 
-func GetLogin(ctx context.Context, login string) string {
-	row, err := db.Query(ctx, scripts.GetLogin, login)
+func (s *DBService) GetLogin(ctx context.Context, login string) string {
+	row, err := s.db.Query(ctx, scripts.GetLogin, login)
 	if err != nil {
 		return ""
 	}
@@ -45,8 +45,8 @@ func GetLogin(ctx context.Context, login string) string {
 	return cast.ToString(value)
 }
 
-func GetPassword(ctx context.Context, login string) string {
-	row, err := db.Query(ctx, scripts.GetPassword, login)
+func (s *DBService) GetPassword(ctx context.Context, login string) string {
+	row, err := s.db.Query(ctx, scripts.GetPassword, login)
 	if err != nil {
 		return ""
 	}
@@ -69,13 +69,15 @@ func GetPassword(ctx context.Context, login string) string {
 	return cast.ToString(value)
 }
 
-func NewSession(ctx context.Context, login string, token string) error {
-	id, err := getUserID(ctx, login)
+func (s *DBService) NewSession(ctx context.Context, login string, token string) error {
+	var id int
+	row := s.db.QueryRow(ctx, scripts.GetUserIDByLogin, login)
+	err := row.Scan(&id)
 	if err != nil {
 		return err
 	}
 	if id != 0 {
-		_, err := db.Exec(ctx, scripts.AddSession, id, token)
+		_, err := s.db.Exec(ctx, scripts.AddSession, id, token)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {
@@ -88,9 +90,9 @@ func NewSession(ctx context.Context, login string, token string) error {
 	return nil
 }
 
-func getUserID(ctx context.Context, login string) (int, error) {
+func (s *DBService) GetUserID(ctx context.Context, login string) (int, error) {
 	var id interface{}
-	rowID, _ := db.Query(ctx, scripts.GetUserIDByLogin, login)
+	rowID, _ := s.db.Query(ctx, scripts.GetUserIDByLogin, login)
 	if rowID.Err() != nil {
 		return 0, rowID.Err()
 	}
@@ -105,9 +107,9 @@ func getUserID(ctx context.Context, login string) (int, error) {
 	return cast.ToInt(id), nil
 }
 
-func GetUserIDByToken(ctx context.Context, token string) (int, error) {
+func (s *DBService) GetUserIDByToken(ctx context.Context, token string) (int, error) {
 	var id interface{}
-	rowID, _ := db.Query(ctx, scripts.GetUserIDByToken, token)
+	rowID, _ := s.db.Query(ctx, scripts.GetUserIDByToken, token)
 	if rowID.Err() != nil {
 		return 0, rowID.Err()
 	}

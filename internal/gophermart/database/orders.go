@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-func UploadOrder(ctx context.Context, id string, userID int, status string, uploadedAt time.Time) int {
-	check := checkDuplicate(ctx, id, userID)
+func (s *DBService) UploadOrder(ctx context.Context, id string, userID int, status string, uploadedAt time.Time) int {
+	check := checkDuplicate(ctx, id, userID, s)
 	if check == http.StatusAccepted {
-		_, err := db.Exec(ctx, scripts.AddOrder, id, userID, status, uploadedAt, 0)
+		_, err := s.db.Exec(ctx, scripts.AddOrder, id, userID, status, uploadedAt, 0)
 		if err != nil {
 			return http.StatusInternalServerError
 		}
@@ -19,10 +19,10 @@ func UploadOrder(ctx context.Context, id string, userID int, status string, uplo
 	return check
 }
 
-func GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
-	list := []model.Order{}
+func (s *DBService) GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
+	var list []model.Order
 	row := model.Order{}
-	rows, _ := db.Query(ctx, scripts.GetOrders, userID)
+	rows, _ := s.db.Query(ctx, scripts.GetOrders, userID)
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}
@@ -36,10 +36,10 @@ func GetOrders(ctx context.Context, userID int) ([]model.Order, error) {
 	return list, nil
 }
 
-func GetActiveOrders(ctx context.Context) ([]model.Order, error) {
+func (s *DBService) GetActiveOrders(ctx context.Context) ([]model.Order, error) {
 	list := []model.Order{}
 	row := model.Order{}
-	rows, _ := db.Query(ctx, scripts.GetActiveOrders)
+	rows, _ := s.db.Query(ctx, scripts.GetActiveOrders)
 	if rows.Err() != nil {
 		return nil, rows.Err()
 	}
@@ -53,24 +53,24 @@ func GetActiveOrders(ctx context.Context) ([]model.Order, error) {
 	return list, nil
 }
 
-func UpdateOrderStatus(ctx context.Context, o *model.Order) int {
-	_, err := db.Exec(ctx, scripts.UpdateOrderStatus, o.Status, o.ID)
+func (s *DBService) UpdateOrderStatus(ctx context.Context, o *model.Order) int {
+	_, err := s.db.Exec(ctx, scripts.UpdateOrderStatus, o.Status, o.ID)
 	if err != nil {
 		return http.StatusInternalServerError
 	}
 	return http.StatusOK
 }
 
-func UpdateOrderAccural(ctx context.Context, o *model.Order) int {
-	_, err := db.Exec(ctx, scripts.UpdateOrderAccural, o.ID, o.Accrual)
+func (s *DBService) UpdateOrderAccural(ctx context.Context, o *model.Order) int {
+	_, err := s.db.Exec(ctx, scripts.UpdateOrderAccural, o.ID, o.Accrual)
 	if err != nil {
 		return http.StatusInternalServerError
 	}
 	return http.StatusOK
 }
 
-func checkDuplicate(ctx context.Context, orderID string, userID int) int {
-	row, err := db.Query(ctx, scripts.GetOrder, orderID)
+func checkDuplicate(ctx context.Context, orderID string, userID int, s *DBService) int {
+	row, err := s.db.Query(ctx, scripts.GetOrder, orderID)
 	if err != nil {
 		return http.StatusInternalServerError
 	}

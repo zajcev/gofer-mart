@@ -6,20 +6,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"net/http"
 	"time"
 )
 
-func RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
-	respCode, token, err := addUser(ctx, user)
+	respCode, token, err := addUser(ctx, user, h)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -30,7 +29,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respCode)
 }
 
-func LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -39,7 +38,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 	defer cancel()
 
-	token, respCode, err := auth(ctx, user)
+	token, respCode, err := auth(ctx, user, h)
 	if err != nil {
 		http.Error(w, err.Error(), respCode)
 	}
@@ -47,10 +46,10 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respCode)
 }
 
-func auth(ctx context.Context, u model.User) (string, int, error) {
-	if verifyLogin(ctx, u) && verifyPassword(ctx, u) {
+func auth(ctx context.Context, u model.User, h *Handler) (string, int, error) {
+	if verifyLogin(ctx, u, h) && verifyPassword(ctx, u, h) {
 		token := generateAuthToken()
-		err := database.NewSession(ctx, u.Login, token)
+		err := h.db.NewSession(ctx, u.Login, token)
 		if err != nil {
 			return "", http.StatusInternalServerError, err
 		}
@@ -60,28 +59,28 @@ func auth(ctx context.Context, u model.User) (string, int, error) {
 	}
 }
 
-func addUser(ctx context.Context, u model.User) (int, string, error) {
-	if verifyLogin(ctx, u) {
+func addUser(ctx context.Context, u model.User, h *Handler) (int, string, error) {
+	if verifyLogin(ctx, u, h) {
 		return http.StatusConflict, "", errors.New("login failed")
 	}
 	hash, err := hashPassword(u.Password)
 	if err != nil {
 		return http.StatusInternalServerError, "", err
 	}
-	database.AddUser(ctx, u.Login, hash)
+	h.db.AddUser(ctx, u.Login, hash)
 	token := generateAuthToken()
-	err = database.NewSession(ctx, u.Login, token)
+	err = h.db.NewSession(ctx, u.Login, token)
 	return http.StatusOK, token, err
 }
 
-func verifyPassword(ctx context.Context, u model.User) bool {
-	dbPass := database.GetPassword(ctx, u.Login)
+func verifyPassword(ctx context.Context, u model.User, h *Handler) bool {
+	dbPass := h.db.GetPassword(ctx, u.Login)
 	hash, _ := hashPassword(u.Password)
 	return dbPass == hash
 }
 
-func verifyLogin(ctx context.Context, u model.User) bool {
-	login := database.GetLogin(ctx, u.Login)
+func verifyLogin(ctx context.Context, u model.User, h *Handler) bool {
+	login := h.db.GetLogin(ctx, u.Login)
 	return login != ""
 }
 
