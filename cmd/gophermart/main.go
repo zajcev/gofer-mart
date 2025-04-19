@@ -44,10 +44,8 @@ func main() {
 		}
 	}()
 
-	select {
-	case err = <-errChan:
-		log.Printf("Fatal error: %v", err)
-		cancel()
-		os.Exit(1)
-	}
+	err = <-errChan
+	log.Printf("Fatal error: %v", err)
+	cancel()
+	os.Exit(1)
 }
