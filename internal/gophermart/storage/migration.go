@@ -1,4 +1,4 @@
-package database
+package storage
 
 import (
 	"context"
@@ -27,13 +27,13 @@ type DBService struct {
 	db DB
 }
 
-func NewDBService(db DB) *DBService {
+func NewDB(db DB) *DBService {
 	return &DBService{db: db}
 }
 
 func Migration(DBUrl string) {
 	wd, _ := os.Getwd()
-	filePath := filepath.Join(wd, "internal/gophermart/database/scripts/")
+	filePath := filepath.Join(wd, "internal/gophermart/storage/scripts/")
 	d, _ := sql.Open("postgres", DBUrl)
 	driver, _ := postgres.WithInstance(d, &postgres.Config{})
 	m, err := migrate.NewWithDatabaseInstance(

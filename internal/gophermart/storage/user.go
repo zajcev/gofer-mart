@@ -1,11 +1,11 @@
-package database
+package storage
 
 import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spf13/cast"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database/scripts"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage/scripts"
 	"log"
 )
 

@@ -1,10 +1,10 @@
-package database
+package storage
 
 import (
 	"context"
 	"errors"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database/scripts"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage/scripts"
 )
 
 func (s *DBService) GetUserBalance(ctx context.Context, userID int) (model.Balance, error) {

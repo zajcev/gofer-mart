@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/go-chi/chi/v5"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zajcev/gofer-mart/internal/gophermart/accural"
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database"
-	"github.com/zajcev/gofer-mart/internal/gophermart/handlers"
+	"github.com/zajcev/gofer-mart/internal/gophermart/server"
+	"github.com/zajcev/gofer-mart/internal/gophermart/server/handlers"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -18,36 +20,34 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	database.Migration(cfg.DatabaseURI)
+	storage.Migration(cfg.DatabaseURI)
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURI)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer pool.Close()
-	db := database.NewDBService(pool)
+	db := storage.NewDB(pool)
 
+	handler := handlers.NewHandler(db)
 	accSystem := accural.NewAccrual(db)
+
+	errChan := make(chan error, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go accSystem.AccrualIntegration(ctx, cfg.AccSystemAddr)
-	log.Fatal(http.ListenAndServe(cfg.Address, Router(db)))
-}
 
-func Router(db *database.DBService) chi.Router {
-	handler := handlers.NewHandler(db)
+	go func() {
+		if err = accSystem.AccrualIntegration(ctx, cfg.AccSystemAddr); err != nil {
+			errChan <- fmt.Errorf("accrual integration failed: %w", err)
+		}
+	}()
 
-	r := chi.NewRouter()
-	//r.Use(middleware.GzipMiddleware)
-	//r.Use(middleware.ZapMiddleware)
+	go func() {
+		log.Printf("Starting server on %s", cfg.Address)
+		if err = http.ListenAndServe(cfg.Address, server.NewRouter(handler)); err != nil {
+			errChan <- fmt.Errorf("HTTP server failed: %w", err)
+		}
+	}()
 
-	r.Post("/api/user/register", handler.RegisterUser)
-	r.Post("/api/user/login", handler.LoginUser)
-
-	r.Get("/api/user/orders", handler.GetOrders)
-	r.Post("/api/user/orders", handler.UploadOrder)
-
-	r.Get("/api/user/balance", handler.GetBalance)
-	r.Get("/api/user/withdrawals", handler.GetWithdrawals)
-	r.Post("/api/user/balance/withdraw", handler.SetWithdrawals)
-	return r
+	select {
+	case err = <-errChan:
+		log.Printf("Fatal error: %v", err)
+		cancel()
+		os.Exit(1)
+	}
 }

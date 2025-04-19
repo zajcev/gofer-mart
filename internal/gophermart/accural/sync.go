@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage"
 	"io"
 	"log"
 	"net/http"
@@ -14,10 +14,10 @@ import (
 )
 
 type Accrual struct {
-	db *database.DBService
+	db *storage.DBService
 }
 
-func NewAccrual(db *database.DBService) *Accrual {
+func NewAccrual(db *storage.DBService) *Accrual {
 	return &Accrual{db: db}
 }
 
@@ -80,7 +80,6 @@ func sendToAccrualSystem(o *model.Order, url string) (*model.Order, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %v", err)
 	}
-	println("accrual system successfully sent")
 	return o, nil
 }
 

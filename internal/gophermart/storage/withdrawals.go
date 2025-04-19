@@ -1,9 +1,9 @@
-package database
+package storage
 
 import (
 	"context"
-	"github.com/zajcev/gofer-mart/internal/gophermart/database/scripts"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage/scripts"
 	"net/http"
 	"time"
 )
