@@ -27,7 +27,7 @@ func (a *Accrual) AccrualIntegration(ctx context.Context, url string) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(2 * time.Second):
-			list, err := a.db.GetActiveOrders(context.Background())
+			list, err := a.db.GetActiveOrders(ctx)
 			if err != nil {
 				return err
 			}
@@ -37,9 +37,9 @@ func (a *Accrual) AccrualIntegration(ctx context.Context, url string) error {
 					continue
 				}
 				if order.Status != "" {
-					updateOrderStatus(context.Background(), order, a)
+					updateOrderStatus(ctx, order, a)
 					if order.Status == "PROCESSED" {
-						updateOrderAccrual(context.Background(), order, a)
+						updateOrderAccrual(ctx, order, a)
 					}
 				}
 			}
