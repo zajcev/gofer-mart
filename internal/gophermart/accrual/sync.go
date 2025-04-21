@@ -1,4 +1,4 @@
-package accural
+package accrual
 
 import (
 	"context"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/zajcev/gofer-mart/internal/gophermart/accural"
+	"github.com/zajcev/gofer-mart/internal/gophermart/accrual"
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/server"
 	"github.com/zajcev/gofer-mart/internal/gophermart/server/handlers"
@@ -25,7 +25,7 @@ func main() {
 	db := storage.NewDB(pool)
 
 	handler := handlers.NewHandler(db)
-	accSystem := accural.NewAccrual(db)
+	accSystem := accrual.NewAccrual(db)
 
 	errChan := make(chan error, 1)
 	ctx, cancel := context.WithCancel(context.Background())
