@@ -9,13 +9,27 @@ import (
 	"time"
 )
 
-func (h *Handler) UploadOrder(w http.ResponseWriter, r *http.Request) {
+type OrderStorage interface {
+	UploadOrder(ctx context.Context, id string, userID int, status string, uploadedAt time.Time) int
+	GetOrders(ctx context.Context, userID int) ([]model.Order, error)
+	GetActiveOrders(ctx context.Context) ([]model.Order, error)
+}
+type OrderHandler struct {
+	db   OrderStorage
+	auth *UserHandler
+}
+
+func NewOrderHandler(db OrderStorage, auth *UserHandler) *OrderHandler {
+	return &OrderHandler{db: db, auth: auth}
+}
+
+func (oh *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserID(r.Context(), token, h)
+	userID, err := oh.auth.getUserID(r.Context(), token)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -36,13 +50,13 @@ func (h *Handler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	respCode := h.db.UploadOrder(r.Context(), order.ID, userID, "NEW", time.Now())
+	respCode := oh.db.UploadOrder(r.Context(), order.ID, userID, "NEW", time.Now())
 	w.WriteHeader(respCode)
 }
 
-func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
+func (oh *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	userID, err := getUserID(r.Context(), token, h)
+	userID, err := oh.auth.getUserID(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -51,7 +65,7 @@ func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 	var orders []model.Order
-	orders, err = h.db.GetOrders(r.Context(), userID)
+	orders, err = oh.db.GetOrders(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -64,9 +78,4 @@ func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-}
-
-func getUserID(ctx context.Context, token string, h *Handler) (int, error) {
-	userID, err := h.db.GetUserIDByToken(ctx, token)
-	return userID, err
 }

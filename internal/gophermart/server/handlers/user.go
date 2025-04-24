@@ -11,14 +11,30 @@ import (
 	"time"
 )
 
-func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+type UserStorage interface {
+	AddUser(ctx context.Context, login string, pass string)
+	GetLogin(ctx context.Context, login string) string
+	GetPassword(ctx context.Context, login string) string
+	NewSession(ctx context.Context, login string, token string) error
+	GetUserID(ctx context.Context, login string) (int, error)
+	GetUserIDByToken(ctx context.Context, token string) (int, error)
+}
+type UserHandler struct {
+	db UserStorage
+}
+
+func NewUserHandler(db UserStorage) *UserHandler {
+	return &UserHandler{db: db}
+}
+
+func (uh *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
-	respCode, token, err := addUser(ctx, user, h)
+	respCode, token, err := addUser(ctx, user, uh)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -29,7 +45,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respCode)
 }
 
-func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
+func (uh *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -38,7 +54,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
 	defer cancel()
 
-	token, respCode, err := auth(ctx, user, h)
+	token, respCode, err := auth(ctx, user, uh)
 	if err != nil {
 		http.Error(w, err.Error(), respCode)
 	}
@@ -46,7 +62,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respCode)
 }
 
-func auth(ctx context.Context, u model.User, h *Handler) (string, int, error) {
+func auth(ctx context.Context, u model.User, h *UserHandler) (string, int, error) {
 	if verifyLogin(ctx, u, h) && verifyPassword(ctx, u, h) {
 		token := generateAuthToken()
 		err := h.db.NewSession(ctx, u.Login, token)
@@ -59,7 +75,7 @@ func auth(ctx context.Context, u model.User, h *Handler) (string, int, error) {
 	}
 }
 
-func addUser(ctx context.Context, u model.User, h *Handler) (int, string, error) {
+func addUser(ctx context.Context, u model.User, h *UserHandler) (int, string, error) {
 	if verifyLogin(ctx, u, h) {
 		return http.StatusConflict, "", errors.New("login failed")
 	}
@@ -73,13 +89,13 @@ func addUser(ctx context.Context, u model.User, h *Handler) (int, string, error)
 	return http.StatusOK, token, err
 }
 
-func verifyPassword(ctx context.Context, u model.User, h *Handler) bool {
+func verifyPassword(ctx context.Context, u model.User, h *UserHandler) bool {
 	dbPass := h.db.GetPassword(ctx, u.Login)
 	hash, _ := hashPassword(u.Password)
 	return dbPass == hash
 }
 
-func verifyLogin(ctx context.Context, u model.User, h *Handler) bool {
+func verifyLogin(ctx context.Context, u model.User, h *UserHandler) bool {
 	login := h.db.GetLogin(ctx, u.Login)
 	return login != ""
 }
@@ -93,4 +109,9 @@ func hashPassword(password string) (string, error) {
 	h := sha256.New()
 	h.Write([]byte(password))
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func (uh *UserHandler) getUserID(ctx context.Context, token string) (int, error) {
+	userID, err := uh.db.GetUserIDByToken(ctx, token)
+	return userID, err
 }

@@ -24,14 +24,6 @@ func (s *DBService) GetUserBalance(ctx context.Context, userID int) (model.Balan
 	return balance, nil
 }
 
-func (s *DBService) SetCurrent(ctx context.Context, order *model.Order) error {
-	_, err := s.db.Exec(ctx, scripts.SetBalance, order.UserID, order.Accrual)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *DBService) SetBalanceWithdraw(ctx context.Context, w *model.Withdraw) error {
 	_, err := s.db.Exec(ctx, scripts.SetWithdraw, w.Sum, w.UserID)
 	if err != nil {

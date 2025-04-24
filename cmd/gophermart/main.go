@@ -7,7 +7,6 @@ import (
 	"github.com/zajcev/gofer-mart/internal/gophermart/accrual"
 	"github.com/zajcev/gofer-mart/internal/gophermart/config"
 	"github.com/zajcev/gofer-mart/internal/gophermart/server"
-	"github.com/zajcev/gofer-mart/internal/gophermart/server/handlers"
 	"github.com/zajcev/gofer-mart/internal/gophermart/storage"
 	"log"
 	"net/http"
@@ -24,7 +23,6 @@ func main() {
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURI)
 	db := storage.NewDB(pool)
 
-	handler := handlers.NewHandler(db)
 	accSystem := accrual.NewAccrual(db)
 
 	errChan := make(chan error, 1)
@@ -39,7 +37,7 @@ func main() {
 
 	go func() {
 		log.Printf("Starting server on %s", cfg.Address)
-		if err = http.ListenAndServe(cfg.Address, server.NewRouter(handler)); err != nil {
+		if err = http.ListenAndServe(cfg.Address, server.NewRouter(db)); err != nil {
 			errChan <- fmt.Errorf("HTTP server failed: %w", err)
 		}
 	}()

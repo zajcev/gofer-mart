@@ -6,40 +6,49 @@ import (
 	"errors"
 	"fmt"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
-	"github.com/zajcev/gofer-mart/internal/gophermart/storage"
 	"io"
 	"log"
 	"net/http"
 	"time"
 )
 
+type AccrualStorage interface {
+	UpdateOrderStatus(ctx context.Context, o *model.Order) int
+	UpdateOrderAccrual(ctx context.Context, o *model.Order) int
+	GetActiveOrders(ctx context.Context) ([]model.Order, error)
+	SetCurrent(ctx context.Context, order *model.Order) error
+}
 type Accrual struct {
-	db *storage.DBService
+	db AccrualStorage
 }
 
-func NewAccrual(db *storage.DBService) *Accrual {
+func NewAccrual(db AccrualStorage) *Accrual {
 	return &Accrual{db: db}
 }
 
 func (a *Accrual) AccrualIntegration(ctx context.Context, url string) error {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(2 * time.Second):
+		case <-ticker.C:
 			list, err := a.db.GetActiveOrders(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get active orders: %w", err)
 			}
 			for _, v := range list {
 				order, err := sendToAccrualSystem(&v, url)
 				if err != nil {
+					log.Printf("error sending order %s to accrual: %v", v.ID, err)
 					continue
 				}
 				if order.Status != "" {
 					updateOrderStatus(ctx, order, a)
 					if order.Status == "PROCESSED" {
 						updateOrderAccrual(ctx, order, a)
+						log.Printf("error updating order %s accrual: %v", order.ID, err)
 					}
 				}
 			}
@@ -88,7 +97,7 @@ func updateOrderStatus(ctx context.Context, o *model.Order, a *Accrual) {
 }
 
 func updateOrderAccrual(ctx context.Context, o *model.Order, a *Accrual) {
-	a.db.UpdateOrderAccural(ctx, o)
+	a.db.UpdateOrderAccrual(ctx, o)
 	err := a.db.SetCurrent(ctx, o)
 	if err != nil {
 		return

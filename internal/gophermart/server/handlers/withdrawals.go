@@ -8,18 +8,33 @@ import (
 	"net/http"
 )
 
-func (h *Handler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
+type WithdrawStorage interface {
+	SetWithdraw(ctx context.Context, withdraw model.Withdraw) int
+	GetWithdraw(ctx context.Context, userID int) ([]model.Withdraw, error)
+	SetBalanceWithdraw(ctx context.Context, w *model.Withdraw) error
+}
+
+type WithdrawHandler struct {
+	db   WithdrawStorage
+	auth *UserHandler
+}
+
+func NewWithdrawHandler(db WithdrawStorage, auth *UserHandler) *WithdrawHandler {
+	return &WithdrawHandler{db: db, auth: auth}
+}
+
+func (wh *WithdrawHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserID(r.Context(), token, h)
+	userID, err := wh.auth.getUserID(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	list, err := h.db.GetWithdraw(r.Context(), userID)
+	list, err := wh.db.GetWithdraw(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -37,13 +52,13 @@ func (h *Handler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) SetWithdrawals(w http.ResponseWriter, r *http.Request) {
+func (wh *WithdrawHandler) SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := getUserID(r.Context(), token, h)
+	userID, err := wh.auth.getUserID(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -58,13 +73,13 @@ func (h *Handler) SetWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	withdraw.UserID = userID
-	resp := h.db.SetWithdraw(r.Context(), withdraw)
+	resp := wh.db.SetWithdraw(r.Context(), withdraw)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp)
-	updateUserBalance(withdraw, h)
+	updateUserBalance(withdraw, wh)
 }
 
-func updateUserBalance(w model.Withdraw, h *Handler) {
+func updateUserBalance(w model.Withdraw, h *WithdrawHandler) {
 	err := h.db.SetBalanceWithdraw(context.Background(), &w)
 	if err != nil {
 		log.Printf("Error after updateUserBalance: %v", err)
