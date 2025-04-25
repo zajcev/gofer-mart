@@ -16,10 +16,10 @@ type WithdrawStorage interface {
 
 type WithdrawHandler struct {
 	db   WithdrawStorage
-	auth *UserHandler
+	auth *AuthStorage
 }
 
-func NewWithdrawHandler(db WithdrawStorage, auth *UserHandler) *WithdrawHandler {
+func NewWithdrawHandler(db WithdrawStorage, auth *AuthStorage) *WithdrawHandler {
 	return &WithdrawHandler{db: db, auth: auth}
 }
 
@@ -29,7 +29,7 @@ func (wh *WithdrawHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := wh.auth.getUserID(r.Context(), token)
+	userID, err := wh.auth.db.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -58,7 +58,7 @@ func (wh *WithdrawHandler) SetWithdrawals(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := wh.auth.getUserID(r.Context(), token)
+	userID, err := wh.auth.db.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -9,10 +9,12 @@ import (
 
 func NewRouter(db *storage.DBService) chi.Router {
 
+	authStorage := handlers.NewAuthStorage(db)
+
 	auth := handlers.NewUserHandler(db)
-	order := handlers.NewOrderHandler(db, auth)
-	balance := handlers.NewBalanceHandler(db, auth)
-	withdraw := handlers.NewWithdrawHandler(db, auth)
+	order := handlers.NewOrderHandler(db, authStorage)
+	balance := handlers.NewBalanceHandler(db, authStorage)
+	withdraw := handlers.NewWithdrawHandler(db, authStorage)
 
 	r := chi.NewRouter()
 	r.Use(middleware.GzipMiddleware)

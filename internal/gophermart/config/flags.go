@@ -23,11 +23,3 @@ func NewConfig() (*Flags, error) {
 	}
 	return &flags, nil
 }
-
-//func GetAddress() string { return cast.ToString(&flags.Address) }
-//func GetDatabaseURI() string {
-//	return cast.ToString(&flags.DatabaseURI)
-//}
-//func GetAccSystemAddr() string {
-//	return cast.ToString(&flags.AccSystemAddr)
-//}

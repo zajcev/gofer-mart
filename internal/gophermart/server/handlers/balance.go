@@ -15,10 +15,10 @@ type BalanceStorage interface {
 
 type BalanceHandler struct {
 	db   BalanceStorage
-	auth *UserHandler
+	auth *AuthStorage
 }
 
-func NewBalanceHandler(db BalanceStorage, auth *UserHandler) *BalanceHandler {
+func NewBalanceHandler(db BalanceStorage, auth *AuthStorage) *BalanceHandler {
 	return &BalanceHandler{db: db, auth: auth}
 }
 
@@ -28,7 +28,7 @@ func (bh *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := bh.auth.getUserID(r.Context(), token)
+	userID, err := bh.auth.db.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

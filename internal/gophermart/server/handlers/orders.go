@@ -16,10 +16,10 @@ type OrderStorage interface {
 }
 type OrderHandler struct {
 	db   OrderStorage
-	auth *UserHandler
+	auth *AuthStorage
 }
 
-func NewOrderHandler(db OrderStorage, auth *UserHandler) *OrderHandler {
+func NewOrderHandler(db OrderStorage, auth *AuthStorage) *OrderHandler {
 	return &OrderHandler{db: db, auth: auth}
 }
 
@@ -29,7 +29,7 @@ func (oh *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := oh.auth.getUserID(r.Context(), token)
+	userID, err := oh.auth.db.GetUserIDByToken(r.Context(), token)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -56,7 +56,7 @@ func (oh *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 
 func (oh *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
-	userID, err := oh.auth.getUserID(r.Context(), token)
+	userID, err := oh.auth.db.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

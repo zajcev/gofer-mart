@@ -11,6 +11,18 @@ import (
 	"time"
 )
 
+type AuthProvider interface {
+	GetUserIDByToken(ctx context.Context, token string) (int, error)
+}
+
+type AuthStorage struct {
+	db AuthProvider
+}
+
+func NewAuthStorage(db AuthProvider) *AuthStorage {
+	return &AuthStorage{db: db}
+}
+
 type UserStorage interface {
 	AddUser(ctx context.Context, login string, pass string)
 	GetLogin(ctx context.Context, login string) string
@@ -109,9 +121,4 @@ func hashPassword(password string) (string, error) {
 	h := sha256.New()
 	h.Write([]byte(password))
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-func (uh *UserHandler) getUserID(ctx context.Context, token string) (int, error) {
-	userID, err := uh.db.GetUserIDByToken(ctx, token)
-	return userID, err
 }
