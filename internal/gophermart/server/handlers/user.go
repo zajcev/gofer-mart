@@ -16,11 +16,11 @@ type AuthProvider interface {
 }
 
 type AuthStorage struct {
-	db AuthProvider
+	DB AuthProvider
 }
 
-func NewAuthStorage(db AuthProvider) *AuthStorage {
-	return &AuthStorage{db: db}
+func NewAuthStorage(db AuthProvider) AuthStorage {
+	return AuthStorage{DB: db}
 }
 
 type UserStorage interface {
@@ -44,13 +44,19 @@ func (uh *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+	defer r.Body.Close()
+
 	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
+	defer cancel()
+
 	respCode, token, err := addUser(ctx, user, uh)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), respCode)
+		return
 	}
-	defer cancel()
+
 	if respCode == http.StatusOK {
 		w.Header().Set("Authorization", token)
 	}
@@ -89,7 +95,7 @@ func auth(ctx context.Context, u model.User, h *UserHandler) (string, int, error
 
 func addUser(ctx context.Context, u model.User, h *UserHandler) (int, string, error) {
 	if verifyLogin(ctx, u, h) {
-		return http.StatusConflict, "", errors.New("login failed")
+		return http.StatusConflict, "", errors.New("user already exists")
 	}
 	hash, err := hashPassword(u.Password)
 	if err != nil {
@@ -98,7 +104,10 @@ func addUser(ctx context.Context, u model.User, h *UserHandler) (int, string, er
 	h.db.AddUser(ctx, u.Login, hash)
 	token := generateAuthToken()
 	err = h.db.NewSession(ctx, u.Login, token)
-	return http.StatusOK, token, err
+	if err != nil {
+		return http.StatusInternalServerError, "", err
+	}
+	return http.StatusOK, token, nil
 }
 
 func verifyPassword(ctx context.Context, u model.User, h *UserHandler) bool {

@@ -15,21 +15,24 @@ type OrderStorage interface {
 	GetActiveOrders(ctx context.Context) ([]model.Order, error)
 }
 type OrderHandler struct {
-	db   OrderStorage
-	auth *AuthStorage
+	orderStorage OrderStorage
+	authStorage  AuthStorage
 }
 
-func NewOrderHandler(db OrderStorage, auth *AuthStorage) *OrderHandler {
-	return &OrderHandler{db: db, auth: auth}
+func NewOrderHandler(orderStorage OrderStorage, authStorage AuthStorage) *OrderHandler {
+	return &OrderHandler{orderStorage: orderStorage, authStorage: authStorage}
 }
 
 func (oh *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
+	orderStorage := oh.orderStorage
+	authStorage := oh.authStorage.DB
+
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := oh.auth.db.GetUserIDByToken(r.Context(), token)
+	userID, err := authStorage.GetUserIDByToken(r.Context(), token)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -50,13 +53,16 @@ func (oh *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	respCode := oh.db.UploadOrder(r.Context(), order.ID, userID, "NEW", time.Now())
+	respCode := orderStorage.UploadOrder(r.Context(), order.ID, userID, "NEW", time.Now())
 	w.WriteHeader(respCode)
 }
 
 func (oh *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
+	orderStorage := oh.orderStorage
+	authStorage := oh.authStorage.DB
+
 	token := r.Header.Get("Authorization")
-	userID, err := oh.auth.db.GetUserIDByToken(r.Context(), token)
+	userID, err := authStorage.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -65,7 +71,7 @@ func (oh *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	}
 	var orders []model.Order
-	orders, err = oh.db.GetOrders(r.Context(), userID)
+	orders, err = orderStorage.GetOrders(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

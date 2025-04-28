@@ -14,26 +14,29 @@ type BalanceStorage interface {
 }
 
 type BalanceHandler struct {
-	db   BalanceStorage
-	auth *AuthStorage
+	balanceStorage BalanceStorage
+	authStorage    AuthStorage
 }
 
-func NewBalanceHandler(db BalanceStorage, auth *AuthStorage) *BalanceHandler {
-	return &BalanceHandler{db: db, auth: auth}
+func NewBalanceHandler(balanceStorage BalanceStorage, authStorage AuthStorage) *BalanceHandler {
+	return &BalanceHandler{balanceStorage: balanceStorage, authStorage: authStorage}
 }
 
 func (bh *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
+	authStorage := bh.authStorage.DB
+	balanceStorage := bh.balanceStorage
+
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userID, err := bh.auth.db.GetUserIDByToken(r.Context(), token)
+	userID, err := authStorage.GetUserIDByToken(r.Context(), token)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	balance, err := bh.db.GetUserBalance(r.Context(), userID)
+	balance, err := balanceStorage.GetUserBalance(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
