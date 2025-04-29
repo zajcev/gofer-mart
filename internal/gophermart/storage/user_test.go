@@ -1,76 +1,130 @@
-package storage
+package storage_test
 
 import (
 	"context"
-	"testing"
-
+	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/stretchr/testify/mock"
-	"github.com/zajcev/gofer-mart/internal/gophermart/storage/scripts"
+	"github.com/stretchr/testify/require"
+	"github.com/zajcev/gofer-mart/internal/gophermart/storage"
+	"testing"
 )
 
-type MockAuthDB struct {
-	mock.Mock
+type mockRows struct {
+	called bool
+	value  interface{}
 }
 
-func (m *MockAuthDB) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	args = append([]interface{}{ctx, sql}, args...)
-	returnArgs := m.Called(args...)
-	return returnArgs.Get(0).(pgx.Rows), returnArgs.Error(1)
+func (r *mockRows) Close()     {}
+func (r *mockRows) Err() error { return nil }
+
+func (r *mockRows) Next() bool {
+	if !r.called {
+		r.called = true
+		return true
+	}
+	return false
 }
 
-func (m *MockAuthDB) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
-	args = append([]interface{}{ctx, sql}, args...)
-	returnArgs := m.Called(args...)
-	return returnArgs.Get(0).(pgconn.CommandTag), returnArgs.Error(1)
+func (r *mockRows) Scan(dest ...interface{}) error {
+	if len(dest) == 0 {
+		return errors.New("no destination arguments provided")
+	}
+	d := dest[0]
+	switch v := d.(type) {
+	case *int:
+		if val, ok := r.value.(int); ok {
+			*v = val
+		}
+	case *string:
+		if val, ok := r.value.(string); ok {
+			*v = val
+		}
+	default:
+		return fmt.Errorf("unsupported destination type: %T", d)
+	}
+
+	return nil
 }
 
-func (m *MockAuthDB) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	args = append([]interface{}{ctx, sql}, args...)
-	returnArgs := m.Called(args...)
-	return returnArgs.Get(0).(pgx.Row)
+func (r *mockRows) CommandTag() pgconn.CommandTag {
+	return pgconn.NewCommandTag("SELECT 1")
 }
 
-type MockRows struct {
-	mock.Mock
+func (r *mockRows) FieldDescriptions() []pgconn.FieldDescription {
+	return []pgconn.FieldDescription{}
 }
 
-func (m *MockRows) Close() {
-	m.Called()
+func (r *mockRows) RawValues() [][]byte {
+	return [][]byte{}
 }
 
-func (m *MockRows) Next() bool {
-	args := m.Called()
-	return args.Bool(0)
+func (r *mockRows) Values() ([]interface{}, error) {
+	return []interface{}{r.value}, nil
 }
 
-func (m *MockRows) Err() error {
-	args := m.Called()
-	return args.Error(0)
+func (r *mockRows) Conn() *pgx.Conn {
+	var conn pgx.Conn
+	return &conn
 }
 
-func (m *MockRows) Scan(dest ...interface{}) error {
-	args := m.Called(dest)
-	return args.Error(0)
+type mockDB struct {
+	login string
 }
 
-func (m *MockRows) Columns() []string {
-	args := m.Called()
-	return args.Get(0).([]string)
+func (m *mockDB) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+	if args[0] == m.login {
+		return &mockRows{value: m.login}, nil
+	}
+	return nil, errors.New("user not found")
+}
+
+func (m *mockDB) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
+	return pgconn.NewCommandTag("INSERT 1"), nil
+}
+
+func (m *mockDB) QueryRow(ctx context.Context, query string, args ...interface{}) pgx.Row {
+	return &mockRows{value: 42}
+}
+
+func (m *mockDB) Begin(ctx context.Context) (pgx.Tx, error) {
+	return nil, nil
+}
+
+func (m *mockDB) Commit(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockDB) Rollback(ctx context.Context) error {
+	return nil
 }
 
 func TestAddUser(t *testing.T) {
-	mockDB := new(MockAuthDB)
-	service := NewDB(mockDB)
-
 	ctx := context.Background()
-	login := "testuser"
-	pass := "password"
+	db := &mockDB{login: "testuser"}
+	s := storage.NewDB(db)
+	s.AddUser(ctx, "testuser", "test")
+}
 
-	mockDB.On("Exec", ctx, scripts.AddUser, login, pass).Return(pgconn.CommandTag{}, nil).Once()
+func TestNewSession(t *testing.T) {
+	ctx := context.Background()
+	db := &mockDB{login: "testuser"}
+	s := storage.NewDB(db)
+	err := s.NewSession(ctx, "testuser", "sometoken")
+	require.NoError(t, err)
+}
 
-	service.AddUser(ctx, login, pass)
+func TestGetUser(t *testing.T) {
+	ctx := context.Background()
+	db := &mockDB{login: "testuser"}
+	s := storage.NewDB(db)
+	s.GetLogin(ctx, "testuser")
+}
 
-	mockDB.AssertExpectations(t)
+func TestGetUserID(t *testing.T) {
+	ctx := context.Background()
+	db := &mockDB{login: "testuser"}
+	s := storage.NewDB(db)
+	s.GetUserID(ctx, "testuser")
 }

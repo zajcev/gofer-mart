@@ -2,6 +2,8 @@ package accrual
 
 import (
 	"context"
+	"errors"
+	"github.com/stretchr/testify/mock"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"io"
 	"net/http"
@@ -99,4 +101,69 @@ func TestSendToAccrualSystem_EmptyResponse(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected empty response error but got %v", err)
 	}
+}
+
+func TestUpdateOrderAccrual_NoError(t *testing.T) {
+	mockDB := new(MockDB)
+	acc := Accrual{db: mockDB}
+	order := &model.Order{}
+
+	mockDB.On("UpdateOrderAccrual", mock.Anything, order).Return()
+	mockDB.On("SetCurrent", mock.Anything, order).Return(nil)
+
+	ctx := context.Background()
+	updateOrderAccrual(ctx, order, &acc)
+
+	mockDB.AssertExpectations(t)
+}
+
+func TestUpdateOrderAccrual_WithError(t *testing.T) {
+	mockDB := new(MockDB)
+	acc := Accrual{db: mockDB}
+	order := &model.Order{}
+
+	mockDB.On("UpdateOrderAccrual", mock.Anything, order).Return()
+	mockDB.On("SetCurrent", mock.Anything, order).Return(errors.New("some error"))
+
+	ctx := context.Background()
+	updateOrderAccrual(ctx, order, &acc)
+
+	mockDB.AssertExpectations(t)
+}
+
+func TestUpdateOrderStatus(t *testing.T) {
+	mockDB := new(MockDB)
+	acc := Accrual{db: mockDB}
+	order := &model.Order{}
+
+	mockDB.On("UpdateOrderStatus", mock.Anything, order).Return()
+
+	ctx := context.Background()
+	updateOrderStatus(ctx, order, &acc)
+
+	mockDB.AssertExpectations(t)
+}
+
+type MockDB struct {
+	mock.Mock
+}
+
+func (m *MockDB) UpdateOrderStatus(ctx context.Context, o *model.Order) int {
+	m.Called(ctx, o)
+	return 1
+}
+
+func (m *MockDB) UpdateOrderAccrual(ctx context.Context, o *model.Order) int {
+	m.Called(ctx, o)
+	return 1
+}
+
+func (m *MockDB) SetCurrent(ctx context.Context, o *model.Order) error {
+	args := m.Called(ctx, o)
+	return args.Error(0)
+}
+
+func (m *MockDB) GetActiveOrders(ctx context.Context) ([]model.Order, error) {
+	m.Called(ctx)
+	return []model.Order{}, nil
 }

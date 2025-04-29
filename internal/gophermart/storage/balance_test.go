@@ -5,12 +5,11 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/zajcev/gofer-mart/internal/gophermart/model"
 	"github.com/zajcev/gofer-mart/internal/gophermart/storage/scripts"
+	"testing"
 )
 
 type MockDB struct {
